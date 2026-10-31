@@ -14,10 +14,12 @@ In `js/data/exercises.js`, add an `X(...)` line under the right pattern. Order m
 
 ```js
 X('id', 'Name', 'pattern', 'equipment', skill /* 1-3 */, 'S' /* S|A|B */,
-  'Why it works (the science).', 'Form cues.', { refs: ['refKey'], yt: 'video search term' }),
+  'Why it works (the science).', 'Form cues.', { refs: ['refKey'] }),
 ```
 
 Optional flags: `axial` (heavy spinal load), `impact` (jumping), `main` (big barbell lift), `senior` (preferred for 60+).
+
+If [free-exercise-db](https://github.com/yuhonas/free-exercise-db) has the exercise, add its folder name to the map in `js/data/demos.js` to get an animated demo.
 
 ## Add a split
 
