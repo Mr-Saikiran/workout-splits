@@ -12,6 +12,9 @@ No build step, no tracking, no backend. Everything runs in the browser.
 - **15 splits**: Full Body, Upper/Lower, Push/Pull/Legs, **Bro Split**, Arnold, PHUL, Upper/Lower + PPL, Torso/Limbs, Anterior/Posterior, 5×5 Strength, Upper/Lower/Full, **Body-Part Specialization** (glutes, arms, chest, back, shoulders, legs, core), Strength Circuit, Athletic Performance, Active Aging.
 - **Exercise library**: 237 exercises (barbell, dumbbell, machine, cable, bodyweight, band) by body area, ranked S/A/B by evidence. Tap one for an animated demo of the start and end position (212 have one), form cues, and Google image and video searches.
 - **Diet**: 93 foods across vegan, vegetarian, egg and non-veg diets, ranked by protein, protein per 100 kcal, carbs, fat, fibre or calories, and filtered by vitamins and minerals (A, B12, C, D, E, K, folate, iron, calcium, magnesium, potassium, zinc, omega-3, iodine) and by what's sold in India, the US, the UK, China and Japan. Shows your protein target from the planner. Values per 100 g from USDA FoodData Central, IFCT 2017 and MEXT.
+- **Recipes**: 47 high-protein recipes (16 with eggs, 22 with chicken, plus paneer, tofu, dal, fish) tagged for bulking or getting lean, with ingredients and estimated macros per serving. Filter by goal, diet, main protein, meal, cuisine (Indian, Chinese, Japanese, American, British, Mediterranean, Mexican), time and search; each opens a YouTube search for cooking videos.
+- **Meditation**: soothing sounds (ambient pad, rain, ocean, singing bowls) and an Om chant, all synthesised in the browser and looping on a timer of up to 60 minutes; a breathing guide (box, 4-7-8, cyclic sighing, slow breathing); guided meditation links.
+- **Sleep**: recommended hours by age group, a sleep-cycle calculator with estimated REM windows, nap timers (power, NASA, coffee, full-cycle, custom) with a beeping alarm, sleep tips for training, and calm-sleep and manifestation video links.
 - **HIIT & Calisthenics**: Norwegian 4×4, Tabata, beginner intervals, EMOMs, and bodyweight skill progressions (push-up → one-arm, pull-up → muscle-up, pistol, L-sit, handstand push-up, front lever).
 - **Yoga**: 10 routines (beginners, lifters, low back, hips, balance, chair yoga…) and a pose library.
 - **Pilates**: 5 mat routines (beginner, core, glutes, back care, full body).
@@ -92,6 +95,10 @@ js/data/splits.js     split catalog and templates
 js/data/yoga.js       yoga routines and poses
 js/data/movement.js   HIIT, calisthenics, Pilates, longevity
 js/data/foods.js      Diet tab foods, nutrients, countries, rankings
+js/data/recipes.js    Recipes tab
+js/data/wellness.js   sleep and meditation content
+js/audio.js           Web Audio: alarm, soundscapes, Om chant
+js/wellness-ui.js     Recipes, Sleep and Meditation tabs
 js/engine.js          split scoring and program generation
 js/app.js             UI
 assets/               app icon and splash sources
