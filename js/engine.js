@@ -41,7 +41,9 @@
 
   // ---------- exercise selection ----------
 
-  function rankExercises(pattern, p, used, mode) {
+  const rankExercises = (pattern, p, used, mode) => scoreExercises(pattern, p, used, mode).map((x) => x.e);
+
+  function scoreExercises(pattern, p, used, mode) {
     const allowed = EQUIP[p.equipment];
     const ag = ageGroup(p.age);
     const maxSkill = p.level === 'beginner' || ag === 'youth' ? 2 : 3;
@@ -63,10 +65,55 @@
         if (p.goal === 'athletic' && e.main) s += 0.5;
         const n = used[e.id] || 0;
         if (n && !(strengthy && e.main)) s -= 2 * n;
-        return { e, s };
+        // `fit` = safe to pick at random: right skill level, no senior red flags.
+        const fit = (e.skill <= maxSkill || mode === '5x5') && !(ag === 'senior' && (e.skill === 3 || e.impact));
+        return { e, s, fit };
       })
-      .sort((a, b) => b.s - a.s)
-      .map((x) => x.e);
+      .sort((a, b) => b.s - a.s);
+  }
+
+  // ---------- variety ----------
+  // every: weeks between exercise rotations. pool/spread: how many of the
+  // ranked options, and how far below the best score, a pick may come from.
+  const VARIETY = {
+    nil: { label: 'Nil', every: Infinity, pool: 1, spread: 0 },
+    low: { label: 'Low', every: 8, pool: 2, spread: 1.05 },
+    medium: { label: 'Medium', every: 4, pool: 3, spread: 1.5 },
+    high: { label: 'High', every: 2, pool: 4, spread: 2.5 },
+    extreme: { label: 'Extreme', every: 1, pool: 99, spread: 4 },
+  };
+
+  // Small seeded PRNG (mulberry32) so a week's plan is reproducible.
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function blockOf(p) {
+    const v = VARIETY[p.variety] || VARIETY.nil;
+    return v.every === Infinity ? 0 : Math.floor(((p.week || 1) - 1) / v.every);
+  }
+
+  // Moves a randomly chosen near-best option to the front of the ranking.
+  function varyPick(scored, p, mode, rand) {
+    const v = VARIETY[p.variety] || VARIETY.nil;
+    if (v.pool < 2 || scored.length < 2) return scored;
+    const strengthy = p.goal === 'strength' || mode === 'strength' || mode === '5x5';
+    const mainLift = strengthy && scored[0].e.main;
+    if (mainLift && p.variety !== 'extreme') return scored;
+    const best = scored[0].s;
+    // Even at Extreme, a strength main lift only rotates among barbell variants.
+    const pool = scored.slice(0, v.pool).filter((x) => x.s >= best - v.spread && x.fit
+      && (!mainLift || x.e.eq === scored[0].e.eq));
+    if (!pool.length) return scored;
+    const pick = pool[Math.floor(rand() * pool.length)];
+    return [pick].concat(scored.filter((x) => x !== pick));
   }
 
   // ---------- prescriptions ----------
@@ -160,6 +207,8 @@
     const { targets, perSlot } = allocateSets(days, p);
     const used = {};
     const warnings = [];
+    const block = blockOf(p);
+    const rand = rng(((p.seed || 1) * 7919 + block * 104729) >>> 0);
 
     days.forEach((d) => {
       const dayUsed = new Set();
@@ -167,7 +216,9 @@
       d.items = [];
       d.slots.forEach((slot) => {
         const pat = P[slot];
-        const ranked = rankExercises(slot, p, used, d.mode).filter((e) => !dayUsed.has(e.id));
+        // Only suitable options (skill level, senior safety); skip the slot if none are left.
+        const scored = scoreExercises(slot, p, used, d.mode).filter((x) => x.fit && !dayUsed.has(x.e.id));
+        const ranked = varyPick(scored, p, d.mode, rand).map((x) => x.e);
         if (!ranked.length) return;
         const ex = ranked[0];
         dayUsed.add(ex.id);
@@ -211,7 +262,7 @@
       if (d.minutes > budget * 1.15) warnings.push(`${d.name} runs about ${d.minutes} min, over your ${budget}-min window. Superset the isolation work or pick more days.`);
     });
 
-    return { split, days, targets, volume: weeklyVolume(days), warnings, schedule: schedule(p.days) };
+    return { split, days, targets, volume: weeklyVolume(days), warnings, schedule: schedule(p.days), block };
   }
 
   function weeklyVolume(days) {
@@ -267,6 +318,7 @@
     if (ag === 'senior') {
       if (split.id === 'active-aging') score += 1;
       if (['full-body', 'active-aging'].includes(split.id)) { score += 5; reasons.push('Full-body work 2–3×/week with balance and power, as NSCA recommends for 60+ (Fragala 2019).'); }
+      if (split.id === 'strength-5x5') { score -= 4; cautions.push('Heavy barbell 5×5 is a big jump after 60; build up with machines and dumbbells first.'); }
       if (['bro-split', 'arnold'].includes(split.id) || p.days >= 6) { score -= 4; cautions.push('High per-muscle fatigue and frequency demands are harder to recover from after 60.'); }
     } else if (ag === 'youth') {
       if (split.id === 'full-body') { score += 3; reasons.push('Full body 2–3×/week with technique focus matches NSCA youth guidance (Faigenbaum 2009).'); }
@@ -316,5 +368,5 @@
       .map((x) => x.r);
   }
 
-  WS.engine = { recommend, buildPlan, weeklyTargets, ageGroup, frequency, rankExercises, suggest, EQUIP };
+  WS.engine = { recommend, buildPlan, weeklyTargets, ageGroup, frequency, rankExercises, suggest, EQUIP, VARIETY };
 })(window.WS = window.WS || {});

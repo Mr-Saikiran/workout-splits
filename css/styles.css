@@ -98,6 +98,9 @@ main { padding: 24px 0 48px; }
 .more-splits { font-size: 13px; color: var(--muted); }
 .more-splits button { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0 2px; text-decoration: underline; }
 
+.variety { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.variety select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); }
+.btn:disabled { opacity: .4; cursor: default; }
 .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .week div { text-align: center; padding: 8px 4px; border-radius: 10px; background: var(--surface-2); font-size: 12px; color: var(--muted); }
 .week div.on { background: var(--accent); color: #fff; font-weight: 600; }

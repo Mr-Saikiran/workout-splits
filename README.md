@@ -8,7 +8,7 @@ No build step, no tracking, no backend. Everything runs in the browser.
 
 ## Features
 
-- **Planner**: personalised split ranking with reasons and caveats, a generated program you can swap exercises in, weekly sets per muscle vs. target, and notes for your age, gender, body type and nutrition.
+- **Planner**: personalised split ranking with reasons and caveats, a generated program you can swap exercises in, **exercise variety from Nil to Extreme** (exercises rotate every 8, 4, 2 or 1 weeks across a 4–16 week program, with a reshuffle button), weekly sets per muscle vs. target, and notes for your age, gender, body type and nutrition.
 - **15 splits**: Full Body, Upper/Lower, Push/Pull/Legs, **Bro Split**, Arnold, PHUL, Upper/Lower + PPL, Torso/Limbs, Anterior/Posterior, 5×5 Strength, Upper/Lower/Full, **Body-Part Specialization** (glutes, arms, chest, back, shoulders, legs, core), Strength Circuit, Athletic Performance, Active Aging.
 - **Exercise library**: about 120 exercises by body area, ranked S/A/B by evidence, with cues and video demos.
 - **HIIT & Calisthenics**: Norwegian 4×4, Tabata, beginner intervals, EMOMs, and bodyweight skill progressions (push-up → one-arm, pull-up → muscle-up, pistol, L-sit, handstand push-up, front lever).
@@ -29,6 +29,7 @@ No build step, no tracking, no backend. Everything runs in the browser.
 | Days / minutes | Which splits are possible; sets are trimmed to fit your session |
 | Equipment | Exercise selection (full gym, home dumbbells, bodyweight) |
 | Focus area | Specialization split: focus muscle first in each session, about 40% more volume |
+| Variety + program length | Nil: same exercises throughout. Low / Medium / High / Extreme: a seeded random pick from the top-ranked options, rotating every 8 / 4 / 2 / 1 weeks. Strength main lifts stay fixed below Extreme |
 
 The core principles: train each muscle about 2× per week, do 10–20 hard sets per muscle per week, take sets close to failure, prefer exercises that load the muscle in a stretched position, and progress the load. Full citations are on the **Science** tab and in [`js/data/references.js`](js/data/references.js).
 

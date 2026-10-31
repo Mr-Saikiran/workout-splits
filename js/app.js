@@ -56,7 +56,7 @@
 
   // ---------- planner ----------
 
-  const state = { profile: null, rec: null, splitId: null, plan: null, forced: null };
+  const state = { profile: null, rec: null, splitId: null, plan: null, week: 1, seed: newSeed() };
   const STORE = 'workout-splits:profile';
 
   function readProfile() {
@@ -67,7 +67,12 @@
       gender: f.get('gender'), bodyType: f.get('bodyType'), goal: f.get('goal'), level: f.get('level'),
       days: num('days', 4), minutes: num('minutes', 60), equipment: f.get('equipment'),
       focus: f.get('focus') || '', weight: num('weight', 0),
+      variety: f.get('variety') || 'medium', weeks: num('weeks', 12),
     };
+  }
+
+  function newSeed() {
+    return Math.floor(Math.random() * 1e9) + 1;
   }
 
   function loadProfile() {
@@ -76,11 +81,15 @@
       if (!saved) return;
       const form = $('#profile-form');
       Object.entries(saved).forEach(([k, v]) => { if (form.elements[k] && v) form.elements[k].value = v; });
+      if (saved.seed) state.seed = saved.seed;
     } catch (e) { /* storage unavailable */ }
   }
 
   function run(splitId) {
     const p = readProfile();
+    state.week = Math.min(state.week, p.weeks);
+    p.week = state.week;
+    p.seed = state.seed;
     try { localStorage.setItem(STORE, JSON.stringify(p)); } catch (e) { /* ignore */ }
     state.profile = p;
     state.rec = E.recommend(p);
@@ -88,6 +97,23 @@
     state.splitId = splitId && ids.includes(splitId) ? splitId : ids[0];
     state.plan = E.buildPlan(WS.SPLIT_BY_ID[state.splitId], p);
     renderResults();
+  }
+
+  function varietyHtml(p, plan) {
+    const v = E.VARIETY[p.variety];
+    const blocks = v.every === Infinity ? 1 : Math.ceil(p.weeks / v.every);
+    const desc = v.every === Infinity ? 'Same exercises for the whole program.'
+      : v.every === 1 ? 'A fresh mix of exercises every week.'
+      : `Exercises rotate every ${v.every} weeks: block ${plan.block + 1} of ${blocks}.`;
+    return `<div class="variety no-print">
+      <button class="btn small" data-week="${p.week - 1}" ${p.week <= 1 ? 'disabled' : ''} aria-label="Previous week">‹</button>
+      <select id="week-select" aria-label="Program week">${Array.from({ length: p.weeks }, (_, i) =>
+        `<option value="${i + 1}"${i + 1 === p.week ? ' selected' : ''}>Week ${i + 1} of ${p.weeks}</option>`).join('')}</select>
+      <button class="btn small" data-week="${p.week + 1}" ${p.week >= p.weeks ? 'disabled' : ''} aria-label="Next week">›</button>
+      <span class="chip accent">Variety: ${v.label}</span>
+      ${p.variety !== 'nil' ? '<button class="btn small" id="reshuffle" title="New random exercise mix">🎲 Reshuffle</button>' : ''}
+      <span class="small muted">${desc}</span>
+    </div>`;
   }
 
   function renderResults() {
@@ -137,6 +163,7 @@
           <div class="no-print"><button class="btn small" id="copy-plan">Copy as text</button> <button class="btn small" onclick="window.print()">Print / PDF</button></div></div>
         <p class="muted">${esc(s.summary)}</p>
         <p class="small"><b>Why it works:</b> ${esc(s.evidence)} ${cite(s.refs)}</p>
+        ${varietyHtml(p, plan)}
         <div class="week">${plan.schedule.map((d) => d.train >= 0
           ? `<div class="on"><b>${d.name}</b>${esc(plan.days[d.train].name.split(' + ')[0])}</div>`
           : `<div><b>${d.name}</b>Rest / recovery</div>`).join('')}</div>
@@ -249,7 +276,7 @@
 
   function planText() {
     const { plan, profile: p } = state;
-    const lines = [`${plan.split.name}: ${p.days} days/week (${GOALS[p.goal]}, ${p.level})`, ''];
+    const lines = [`${plan.split.name}: ${p.days} days/week (${GOALS[p.goal]}, ${p.level}), week ${p.week} of ${p.weeks}`, ''];
     plan.days.forEach((d) => {
       lines.push(`== ${d.name} (~${d.minutes} min) ==`);
       d.items.forEach((it) => lines.push(`- ${it.ex.name}: ${it.sets} x ${it.reps}, RIR ${it.rir}, rest ${it.rest}`));
@@ -260,9 +287,11 @@
   }
 
   function onResultsClick(e) {
-    const t = e.target.closest('[data-split],[data-swap],[data-toggle],#copy-plan');
+    const t = e.target.closest('[data-split],[data-swap],[data-toggle],[data-week],#copy-plan,#reshuffle');
     if (!t) return;
     if (t.dataset.split) { run(t.dataset.split); return; }
+    if (t.dataset.week) { state.week = Number(t.dataset.week); run(state.splitId); return; }
+    if (t.id === 'reshuffle') { state.seed = newSeed(); run(state.splitId); return; }
     if (t.id === 'copy-plan') {
       const done = () => { t.textContent = 'Copied ✓'; setTimeout(() => (t.textContent = 'Copy as text'), 1500); };
       if (navigator.clipboard) navigator.clipboard.writeText(planText()).then(done, () => {});
@@ -447,6 +476,7 @@
       ['Rest long enough', 'Two to three minutes between heavy compound sets beat 1 minute for both strength and size.', ['rest2016']],
       ['Train muscles at long lengths', 'Exercises that load the stretched position (seated leg curls, overhead triceps, deep calf raises) produced more growth.', ['maeoHam2021', 'maeoTri2023', 'pedrosa2022', 'kassiano2023']],
       ['Exercise order matters for priorities', 'Exercises done first in a session gain more strength, so the planner puts focus muscles first.', ['nunes2021']],
+      ['Some exercise variety helps; too much can blunt strength', 'Rotating exercises built muscle at least as well as fixed exercises and improved motivation, and varied exercises improved strength more than varied loads. Strength is skill-specific, so the planner keeps main barbell lifts fixed below Extreme variety.', ['bazValle2019', 'fonseca2014']],
       ['Maintenance takes far less', 'About one third of normal volume maintains muscle, which is how specialization blocks work.', ['bickel2011']],
       ['Sex and age change the details, not the principles', 'Men and women gain at similar relative rates. Older adults still respond strongly and benefit most from adding power and balance work.', ['roberts2020', 'peterson2010', 'fragala2019']],
       ['Protein and energy', 'About 1.6 g/kg/day of protein maximises training gains for most people.', ['morton2018']],
@@ -468,6 +498,9 @@
   loadProfile();
   $('#profile-form').addEventListener('submit', (e) => { e.preventDefault(); run(); $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#results').addEventListener('click', onResultsClick);
+  $('#results').addEventListener('change', (e) => {
+    if (e.target.id === 'week-select') { state.week = Number(e.target.value); run(state.splitId); }
+  });
   window.addEventListener('hashchange', showTab);
   showTab();
   run();
