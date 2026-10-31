@@ -55,6 +55,30 @@ python -m http.server 8000
 
 To host it free, enable **GitHub Pages** (Settings → Pages → deploy from `main`, root).
 
+## Mobile apps (Android & iPhone)
+
+The same app, wrapped with [Capacitor](https://capacitorjs.com/) and bundled to work offline (exercise demo images need a connection). Download from [Releases](https://github.com/Mr-Saikiran/workout-splits/releases/latest):
+
+- **Android**: `workout-splits-<version>-android.apk`. Open it on your phone and allow installing from your browser or file manager. Android 7.0+.
+- **iPhone**: `workout-splits-<version>-ios-unsigned.ipa`, an unsigned preview (no Apple Developer account yet). Install with AltStore or Sideloadly, which sign it with your Apple ID; free Apple IDs need re-signing every 7 days.
+
+[`.github/workflows/mobile.yml`](.github/workflows/mobile.yml) builds both on every push to `main`. To publish a release: bump `version` in `package.json`, then **Actions → Mobile apps → Run workflow** with *publish* ticked (or push a `v<version>` tag).
+
+The APK is debug-signed unless these repository secrets exist, in which case it is release-signed (needed for the Play Store):
+`WS_KEYSTORE_BASE64` (base64 of a `.jks` keystore), `WS_KEYSTORE_PASSWORD`, `WS_KEY_ALIAS`, `WS_KEY_PASSWORD`.
+
+Build locally (needs Node 22+, plus Android Studio or Xcode):
+
+```bash
+npm install
+```
+
+```bash
+npm run build:web && npx cap add android && npx cap open android
+```
+
+Icons and splash screens come from `assets/` (regenerate with `npm run icons`); CI turns them into every size with `@capacitor/assets`.
+
 ## Project layout
 
 ```
@@ -68,6 +92,10 @@ js/data/yoga.js       yoga routines and poses
 js/data/movement.js   HIIT, calisthenics, Pilates, longevity
 js/engine.js          split scoring and program generation
 js/app.js             UI
+assets/               app icon and splash sources
+capacitor.config.json Android / iOS app settings
+scripts/              build-web (www/ for the apps), make-icons
+.github/workflows/    mobile app builds
 ```
 
 ## Contributing

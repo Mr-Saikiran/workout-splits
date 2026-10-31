@@ -1,0 +1,12 @@
+{
+  "appId": "in.techswitch.splits",
+  "appName": "Workout Splits",
+  "webDir": "www",
+  "backgroundColor": "#0f1115",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "auto"
+  },
+  "ios": {
+    "contentInset": "never"
+  }
+}

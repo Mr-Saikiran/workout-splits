@@ -1,0 +1,167 @@
+name: Mobile apps
+
+# Wraps the web app with Capacitor and builds:
+#   Android  APK (release-signed when the WS_* signing secrets exist, debug-signed otherwise)
+#   iOS      unsigned IPA (there is no Apple Developer account yet; sideload with AltStore or Sideloadly)
+# A version tag (v1.0.0, matching package.json) or "Run workflow" with publish
+# ticked attaches both to the GitHub release v<package.json version>.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths: ["index.html", "css/**", "js/**", "assets/**", "scripts/build-web.mjs", "package*.json", "capacitor.config.json", ".github/workflows/mobile.yml"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the APK and IPA as the GitHub release for this version
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  BUILD_NUMBER: ${{ github.run_number }}
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    outputs:
+      signed: ${{ steps.build.outputs.signed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm ci
+      - name: Create the Android project
+        run: |
+          echo "VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+          npm run build:web
+          npx cap add android
+          npx @capacitor/assets generate --android
+      - name: Set the version
+        run: |
+          sed -i -E "s/versionCode [0-9]+/versionCode $BUILD_NUMBER/; s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" android/app/build.gradle
+          grep -E "versionCode|versionName|applicationId" android/app/build.gradle
+          npx cap sync android
+      - name: Build the APK
+        id: build
+        env:
+          KEYSTORE_BASE64: ${{ secrets.WS_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.WS_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.WS_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.WS_KEY_PASSWORD }}
+        run: |
+          mkdir dist
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            npx cap build android --androidreleasetype APK --keystorepath "$RUNNER_TEMP/release.jks" \
+              --keystorepass "$KEYSTORE_PASSWORD" --keystorealias "$KEY_ALIAS" --keystorealiaspass "$KEY_PASSWORD"
+            apk=$(find android/app/build/outputs/apk/release -name '*.apk' | head -1)
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::WS_KEYSTORE_BASE64 is not set; building a debug-signed APK."
+            (cd android && ./gradlew --no-daemon assembleDebug)
+            apk=android/app/build/outputs/apk/debug/app-debug.apk
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+          cp "$apk" "dist/workout-splits-$VERSION-android.apk"
+          (cd dist && sha256sum ./*.apk > SHA256SUMS-android && cat SHA256SUMS-android)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: dist/
+
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Use the newest Xcode on the runner
+        run: |
+          xcode=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+      - run: npm ci
+      - name: Create the iOS project
+        run: |
+          echo "VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+          npm run build:web
+          npx cap add ios
+          npx @capacitor/assets generate --ios
+          sed -i '' -E "s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = $(node -p "require('./package.json').version");/g; s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" ios/App/App.xcodeproj/project.pbxproj
+          npx cap sync ios
+      - name: Build the unsigned IPA
+        run: |
+          if [ -d ios/App/App.xcworkspace ]; then target=(-workspace ios/App/App.xcworkspace); else target=(-project ios/App/App.xcodeproj); fi
+          xcodebuild -quiet build "${target[@]}" -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          app=build/Build/Products/Release-iphoneos/App.app
+          plutil -p "$app/Info.plist" | grep -E '"CFBundle(Identifier|ShortVersionString|Version|DisplayName)"'
+          mkdir -p dist/Payload
+          cp -R "$app" dist/Payload/
+          (cd dist && zip -qry "workout-splits-$VERSION-ios-unsigned.ipa" Payload && rm -rf Payload \
+            && shasum -a 256 ./*.ipa > SHA256SUMS-ios && cat SHA256SUMS-ios)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: dist/
+
+  release:
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main')
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Work out the tag and notes
+        env:
+          SIGNED: ${{ needs.android.outputs.signed }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "$tag" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"; exit 1
+          fi
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          if [ "$SIGNED" = "true" ]; then android="release-signed"; else android="debug-signed (fine for sideloading; not for the Play Store)"; fi
+          cat > notes.md <<EOF
+          Workout Splits $tag: the science-backed split planner as a phone app. Same app as https://techswitch.in/splits/, bundled to work offline (exercise demo images need a connection).
+
+          ### Android
+          \`workout-splits-$version-android.apk\` is $android. On your phone, open it and allow "install unknown apps" for your browser or file manager. Android 7.0 or newer.
+
+          ### iPhone (unsigned preview)
+          \`workout-splits-$version-ios-unsigned.ipa\` is built without an Apple signature, because the project has no Apple Developer account yet. iPhones only run signed apps, so install it with a sideloading tool such as AltStore or Sideloadly, which signs it with your own Apple ID (apps signed with a free Apple ID stop opening after 7 days until re-signed).
+
+          \`SHA256SUMS-android\` and \`SHA256SUMS-ios\` list the checksums.
+          EOF
+          ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          name: Workout Splits ${{ env.TAG }}
+          body_path: notes.md
+          files: |
+            dist/*.apk
+            dist/*.ipa
+            dist/SHA256SUMS-*
