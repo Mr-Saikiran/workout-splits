@@ -9,5 +9,5 @@ const www = join(root, 'www');
 
 await rm(www, { recursive: true, force: true });
 await mkdir(www);
-for (const part of ['index.html', 'css', 'js']) await cp(join(root, part), join(www, part), { recursive: true });
+for (const part of ['index.html', 'css', 'js', 'img']) await cp(join(root, part), join(www, part), { recursive: true });
 console.log('www/ ready');

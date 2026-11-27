@@ -62,6 +62,17 @@
     { title: 'Meditation for anxiety', q: 'guided meditation for anxiety', kind: 'Guided' },
   ];
 
+  WS.AFFIRMATION_LINKS = [
+    { title: '30-minute positive affirmations', q: '30 minute positive affirmations' },
+    { title: '1-hour morning affirmations', q: '1 hour morning affirmations' },
+    { title: '1-hour self-love affirmations', q: '1 hour self love affirmations' },
+    { title: '1-hour confidence affirmations', q: '1 hour confidence affirmations' },
+    { title: '1-hour sleep affirmations', q: '1 hour sleep affirmations' },
+    { title: '1-hour health & healing affirmations', q: '1 hour health healing affirmations' },
+  ];
+  // YouTube search limited to videos over 20 minutes.
+  WS.ytLongSearch = (q) => WS.ytSearch(q) + '&sp=EgIYAg%253D%253D';
+
   // Breathing patterns: [phase, seconds] repeated.
   WS.BREATHING = {
     box: { label: 'Box breathing (4-4-4-4)', steps: [['Breathe in', 4], ['Hold', 4], ['Breathe out', 4], ['Hold', 4]],

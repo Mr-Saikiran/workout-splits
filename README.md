@@ -9,12 +9,19 @@ No build step, no tracking, no backend. Everything runs in the browser.
 ## Features
 
 - **Planner**: personalised split ranking with reasons and caveats, a generated program you can swap exercises in, **exercise variety from Nil to Extreme** (exercises rotate every 8, 4, 2 or 1 weeks across a 4–24 week program that repeats as new cycles, with a reshuffle button), weekly sets per muscle vs. target, and notes for your age, gender, body type and nutrition.
-- **15 splits**: Full Body, Upper/Lower, Push/Pull/Legs, **Bro Split**, Arnold, PHUL, Upper/Lower + PPL, Torso/Limbs, Anterior/Posterior, 5×5 Strength, Upper/Lower/Full, **Body-Part Specialization** (glutes, arms, chest, back, shoulders, legs, core), Strength Circuit, Athletic Performance, Active Aging.
+- **18 splits**: Full Body, Upper/Lower, Push/Pull/Legs, **Bro Split**, Arnold, PHUL, Upper/Lower + PPL, Torso/Limbs, Anterior/Posterior, 5×5 Strength, **5/3/1 Boring But Big**, **German Volume Training (5×10)**, Upper/Lower/Full, **Body-Part Specialization** (glutes, arms, chest, back, shoulders, legs, core), Strength Circuit, Athletic Performance, **Hybrid / Hyrox-style**, Active Aging.
+- **Goals**: build muscle, strength, fat loss, **get toned**, recomposition, health, athletic performance.
+- **Full-program PDF**: every week of the program in tables; downloads on the web and opens the share sheet in the apps.
 - **Exercise library**: 237 exercises (barbell, dumbbell, machine, cable, bodyweight, band) by body area, ranked S/A/B by evidence. Tap one for an animated demo of the start and end position (212 have one), form cues, and Google image and video searches.
 - **Diet**: 93 foods across vegan, vegetarian, egg and non-veg diets, ranked by protein, protein per 100 kcal, carbs, fat, fibre or calories, and filtered by vitamins and minerals (A, B12, C, D, E, K, folate, iron, calcium, magnesium, potassium, zinc, omega-3, iodine) and by what's sold in India, the US, the UK, China and Japan. Shows your protein target from the planner. Values per 100 g from USDA FoodData Central, IFCT 2017 and MEXT.
+- **Health conditions** (Diet and Recipes): type 2 diabetes, PCOS, high blood pressure and hypothyroidism, with a "good choice / limit / note" badge on every food and recipe and guideline-based advice (ADA, 2023 PCOS guideline, DASH, ATA).
 - **Recipes**: 47 high-protein recipes (16 with eggs, 22 with chicken, plus paneer, tofu, dal, fish) tagged for bulking or getting lean, with ingredients and estimated macros per serving. Filter by goal, diet, main protein, meal, cuisine (Indian, Chinese, Japanese, American, British, Mediterranean, Mexican), time and search; each opens a YouTube search for cooking videos.
 - **Meditation**: soothing sounds (ambient pad, rain, ocean, singing bowls) and an Om chant, all synthesised in the browser and looping on a timer of up to 60 minutes; a breathing guide (box, 4-7-8, cyclic sighing, slow breathing); guided meditation links.
 - **Sleep**: recommended hours by age group, a sleep-cycle calculator with estimated REM windows, nap timers (power, NASA, coffee, full-cycle, custom) with a beeping alarm, sleep tips for training, and calm-sleep and manifestation video links.
+- **Progress**: a weight log with a graph, your weekly rate against your goal, and a weekly weigh-in reminder (a real notification in the apps; a banner, browser notification or calendar event on the web).
+- **Saved videos**: keep YouTube Shorts, videos and any links with categories and notes.
+- **Cult.fit**: how cult.fit class types fit your plan (cult.fit has no public API, so there is no account sync).
+- **Saved on your device**: profile, program week, videos, weights and reminders persist (Capacitor Preferences in the apps, browser storage on the web), with backup export and import.
 - **HIIT & Calisthenics**: Norwegian 4×4, Tabata, beginner intervals, EMOMs, and bodyweight skill progressions (push-up → one-arm, pull-up → muscle-up, pistol, L-sit, handstand push-up, front lever).
 - **Yoga**: 10 routines (beginners, lifters, low back, hips, balance, chair yoga…) and a pose library.
 - **Pilates**: 5 mat routines (beginner, core, glutes, back care, full body).
@@ -81,7 +88,7 @@ npm install
 npm run build:web && npx cap add android && npx cap open android
 ```
 
-Icons and splash screens come from `assets/` (regenerate with `npm run icons`); CI turns them into every size with `@capacitor/assets`.
+The logo, favicons, icons and splash screens are all built from `assets/logo-source.png` (regenerate with `npm run icons`); CI turns them into every app size with `@capacitor/assets`. After `npm install`, `npm run vendor` refreshes the PDF libraries in `js/vendor/`.
 
 ## Project layout
 
@@ -100,7 +107,11 @@ js/data/wellness.js   sleep and meditation content
 js/audio.js           Web Audio: alarm, soundscapes, Om chant
 js/wellness-ui.js     Recipes, Sleep and Meditation tabs
 js/engine.js          split scoring and program generation
-js/app.js             UI
+js/app.js             UI: planner, navigation, PDF
+js/store.js           durable storage, file saving, reminders (Capacitor plugins)
+js/tracker-ui.js      Saved videos, Progress and Cult.fit tabs
+js/data/conditions.js health-condition guidance and badges
+js/vendor/            jsPDF + AutoTable (MIT), loaded only for the PDF
 assets/               app icon and splash sources
 capacitor.config.json Android / iOS app settings
 scripts/              build-web (www/ for the apps), make-icons

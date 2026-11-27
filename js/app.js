@@ -4,7 +4,8 @@
   const $ = (sel, root) => (root || document).querySelector(sel);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  const GOALS = { muscle: 'Build muscle', strength: 'Strength', fatloss: 'Fat loss', recomp: 'Recomposition', general: 'Health & longevity', athletic: 'Athletic' };
+  const GOALS = { muscle: 'Build muscle', strength: 'Strength', fatloss: 'Fat loss', recomp: 'Recomposition', tone: 'Get toned', general: 'Health & longevity', athletic: 'Athletic' };
+  const goalLabel = (p) => (p.tone ? GOALS.tone : GOALS[p.goal]);
   const BODY = { lean: 'Lean build', average: 'Average build', higher: 'Higher body fat' };
   const EQUIP = { gym: 'Full gym', home: 'Home gym', bodyweight: 'Bodyweight' };
   const EQ_LABEL = { barbell: 'Barbell', dumbbell: 'Dumbbell', machine: 'Machine', cable: 'Cable', bodyweight: 'Bodyweight', band: 'Band', kettlebell: 'Kettlebell' };
@@ -67,15 +68,58 @@
 
   // ---------- tabs ----------
 
-  const TABS = ['planner', 'splits', 'exercises', 'diet', 'recipes', 'hiit', 'yoga', 'pilates', 'meditation', 'sleep', 'longevity', 'science'];
+  // Every module: top tabs, the phone bottom bar (`bar`) and the module menu.
+  const MODULES = [
+    { id: 'planner', icon: '🗓️', label: 'Planner', group: 'Train', desc: 'Your split and full program', bar: true },
+    { id: 'splits', icon: '🧩', label: 'Splits', group: 'Train', desc: 'Every split, with the research' },
+    { id: 'exercises', icon: '🏋️', label: 'Exercises', group: 'Train', desc: '237 exercises with demos', bar: true },
+    { id: 'hiit', icon: '⚡', label: 'HIIT & Calisthenics', short: 'HIIT', group: 'Train', desc: 'Intervals and bodyweight skills' },
+    { id: 'cultfit', icon: '🏟️', label: 'Cult.fit', group: 'Train', desc: 'Fit cult.fit classes into your plan' },
+    { id: 'diet', icon: '🥗', label: 'Diet', group: 'Eat', desc: 'Foods by nutrient, diet and country', bar: true },
+    { id: 'recipes', icon: '🍳', label: 'Recipes', group: 'Eat', desc: 'High-protein bulking and lean meals' },
+    { id: 'yoga', icon: '🧘', label: 'Yoga', group: 'Recover', desc: 'Routines and poses' },
+    { id: 'pilates', icon: '🤸', label: 'Pilates', group: 'Recover', desc: 'Core and back care' },
+    { id: 'meditation', icon: '🕉️', label: 'Meditation', group: 'Recover', desc: 'Sounds, Om chant, breathing' },
+    { id: 'sleep', icon: '😴', label: 'Sleep', group: 'Recover', desc: 'Sleep cycles, naps and alarm' },
+    { id: 'progress', icon: '📈', label: 'Progress', group: 'Track', desc: 'Weight log, graph and reminder', bar: true },
+    { id: 'saved', icon: '🎬', label: 'Saved videos', short: 'Saved', group: 'Track', desc: 'Your YouTube shorts and links' },
+    { id: 'longevity', icon: '🌱', label: 'Longevity', group: 'Learn', desc: 'Train for a long, healthy life' },
+    { id: 'science', icon: '🔬', label: 'Science', group: 'Learn', desc: 'Principles and every source' },
+  ];
+  const TABS = MODULES.map((m) => m.id);
   const rendered = {};
   const RENDER = { splits: renderSplits, exercises: renderExercises, diet: renderDiet, recipes: WS.renderRecipes,
-    meditation: WS.renderMeditation, sleep: WS.renderSleep, hiit: renderHiit, yoga: renderYoga, pilates: renderPilates, longevity: renderLongevity, science: renderScience };
+    meditation: WS.renderMeditation, sleep: WS.renderSleep, hiit: renderHiit, yoga: renderYoga, pilates: renderPilates,
+    longevity: renderLongevity, science: renderScience, progress: WS.renderProgress, saved: WS.renderSaved, cultfit: WS.renderCultfit };
+
+  function buildNav() {
+    const main = $('main');
+    MODULES.forEach((m) => {
+      if (!$('#tab-' + m.id)) main.insertAdjacentHTML('beforeend', `<section id="tab-${m.id}" class="tab-panel" hidden></section>`);
+    });
+    $('#tabs').innerHTML = MODULES.map((m) => `<a href="#${m.id}" data-tab="${m.id}">${esc(m.label)}</a>`).join('');
+    $('#bottom-nav').innerHTML = MODULES.filter((m) => m.bar).map((m) =>
+      `<a href="#${m.id}" data-tab="${m.id}"><span>${m.icon}</span>${esc(m.short || m.label)}</a>`).join('')
+      + '<button id="bottom-more" data-menu><span>☰</span>More</button>';
+    const groups = [...new Set(MODULES.map((m) => m.group))];
+    $('#menu-body').innerHTML = groups.map((g) => `<h3>${g}</h3><div class="module-grid">${MODULES.filter((m) => m.group === g).map((m) =>
+      `<a class="module-tile" href="#${m.id}" data-tab="${m.id}"><span class="module-icon">${m.icon}</span><b>${esc(m.label)}</b><small>${esc(m.desc)}</small></a>`).join('')}</div>`).join('');
+    const menu = $('#menu');
+    const open = () => (menu.showModal ? menu.showModal() : menu.setAttribute('open', ''));
+    $('#menu-btn').addEventListener('click', open);
+    $('#bottom-more').addEventListener('click', open);
+    $('#menu-close').addEventListener('click', () => menu.close());
+    menu.addEventListener('click', (e) => { if (e.target === menu || e.target.closest('.module-tile')) menu.close(); });
+  }
 
   function showTab() {
     const id = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'planner';
     TABS.forEach((t) => { $('#tab-' + t).hidden = t !== id; });
-    document.querySelectorAll('#tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === id));
+    document.querySelectorAll('#tabs a, #bottom-nav a, .module-tile').forEach((a) => a.classList.toggle('active', a.dataset.tab === id));
+    const inBar = MODULES.some((m) => m.id === id && m.bar);
+    $('#bottom-more').classList.toggle('active', !inBar);
+    const tab = document.querySelector(`#tabs a[data-tab="${id}"]`);
+    if (tab) tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     if (RENDER[id] && !rendered[id]) { RENDER[id](); rendered[id] = true; }
     else if (RENDER[id] && RENDER[id].refresh) RENDER[id].refresh();
     window.scrollTo(0, 0);
@@ -84,7 +128,6 @@
   // ---------- planner ----------
 
   const state = { profile: null, rec: null, splitId: null, plan: null, week: 1, cycle: 1, seed: newSeed() };
-  const STORE = 'workout-splits:profile';
 
   function readProfile() {
     const f = new FormData($('#profile-form'));
@@ -102,29 +145,39 @@
     return Math.floor(Math.random() * 1e9) + 1;
   }
 
-  function loadProfile() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
-      if (!saved) return;
+  // Restores the saved profile and where the user was in their program.
+  function loadSaved() {
+    const saved = WS.store.get('profile');
+    if (saved) {
       const form = $('#profile-form');
-      Object.entries(saved).forEach(([k, v]) => { if (form.elements[k] && v) form.elements[k].value = v; });
-      if (saved.seed) state.seed = saved.seed;
-    } catch (e) { /* storage unavailable */ }
+      Object.entries(saved).forEach(([k, v]) => { if (form.elements[k] && v !== '' && v != null) form.elements[k].value = v; });
+    }
+    const plan = WS.store.get('plan');
+    if (plan) Object.assign(state, { splitId: plan.splitId || null, week: plan.week || 1, cycle: plan.cycle || 1, seed: plan.seed || state.seed });
+    else if (saved && saved.seed) state.seed = saved.seed;
   }
 
   function run(splitId) {
-    const p = readProfile();
+    const raw = readProfile();
+    WS.store.set('profile', Object.assign({}, raw));
+    const p = E.normalize(raw);
     state.week = Math.min(state.week, p.weeks);
     p.week = state.week;
     p.cycle = state.cycle;
     p.seed = state.seed;
-    try { localStorage.setItem(STORE, JSON.stringify(p)); } catch (e) { /* ignore */ }
     state.profile = p;
     state.rec = E.recommend(p);
     const ids = state.rec.ranked.map((r) => r.split.id);
     state.splitId = splitId && ids.includes(splitId) ? splitId : ids[0];
     state.plan = E.buildPlan(WS.SPLIT_BY_ID[state.splitId], p);
+    WS.store.set('plan', { splitId: state.splitId, week: state.week, cycle: state.cycle, seed: state.seed });
     renderResults();
+    showSaved();
+  }
+
+  function showSaved() {
+    const el = $('#saved-note');
+    if (el) el.textContent = '✓ Saved on this device';
   }
 
   function varietyHtml(p, plan) {
@@ -156,7 +209,7 @@
     $('#results').innerHTML = `
       <div class="chips">
         <span class="chip accent">${p.age} yrs</span><span class="chip">${p.gender === 'other' ? 'Any gender' : p.gender[0].toUpperCase() + p.gender.slice(1)}</span>
-        <span class="chip">${BODY[p.bodyType]}</span><span class="chip">${GOALS[p.goal]}</span><span class="chip">${p.level}</span>
+        <span class="chip">${BODY[p.bodyType]}</span><span class="chip">${goalLabel(p)}</span><span class="chip">${p.level}</span>
         <span class="chip">${p.days} days × ${p.minutes} min</span><span class="chip">${EQUIP[p.equipment]}</span>
         ${p.focus ? `<span class="chip accent">Focus: ${WS.FOCUS[p.focus].label}</span>` : ''}
       </div>
@@ -190,7 +243,7 @@
     return `
       <div class="card">
         <div class="section-title"><h2>${esc(s.name)}</h2>
-          <div class="no-print"><button class="btn small" id="copy-plan">Copy as text</button> <button class="btn small" onclick="window.print()">Print / PDF</button></div></div>
+          <div class="no-print plan-actions"><button class="btn small primary" id="pdf-plan">⬇ PDF: full program</button> <button class="btn small" id="copy-plan">Copy as text</button></div></div>
         <p class="muted">${esc(s.summary)}</p>
         <p class="small"><b>Why it works:</b> ${esc(s.evidence)} ${cite(s.refs)}</p>
         ${varietyHtml(p, plan)}
@@ -290,6 +343,9 @@
     notes.push({ title: 'Nutrition basics', refs: ['morton2018', 'helms2014'],
       html: `<p>Eat ${protein}, spread over 3–5 meals, with ${kcal}. Protein benefits level off around 1.6 g/kg for most people.</p>` });
 
+    if (p.tone) notes.push({ title: 'Getting toned', refs: ['helms2014', 'failure2023'],
+      html: '<p>"Toned" means a bit more muscle and a bit less fat over it, so the muscle shows. Your plan uses moderate weights for 8–15 reps with short rests and adds a conditioning finisher. Eat at maintenance or a small deficit with plenty of protein. Light weights don’t tone better: effort close to failure does.</p>' });
+
     notes.push({ title: 'How to progress', refs: ['failure2023', 'load2017'],
       html: '<ul><li><b>Double progression:</b> when you hit the top of the rep range on all sets, add load (2.5–5%).</li><li>"Reps in reserve" = how many more reps you could have done. Go closer to failure on isolation exercises than on heavy compounds.</li><li>Take an easier deload week every 6–8 weeks or when progress stalls.</li><li>Log every workout; what gets measured improves.</li></ul>' });
 
@@ -299,9 +355,112 @@
     return notes;
   }
 
+  // ---------- full-program PDF ----------
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) return resolve();
+      const el = document.createElement('script');
+      el.src = src;
+      el.onload = resolve;
+      el.onerror = () => reject(new Error('Could not load ' + src));
+      document.head.appendChild(el);
+    });
+  }
+
+  // jsPDF's built-in fonts cover Latin-1 only.
+  const pdfText = (t) => String(t).replace(/→/g, '->').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x00-\xFF–—•…]/g, '').trim();
+
+  // Weeks with the same exercises are grouped into one block (5/3/1 changes every week).
+  function programBlocks(split, p) {
+    const v = E.VARIETY[p.variety];
+    const every = split.weekly ? 1 : v.every === Infinity ? p.weeks : v.every;
+    const blocks = [];
+    for (let start = 1; start <= p.weeks; start += every) {
+      const end = Math.min(start + every - 1, p.weeks);
+      const plan = p.week >= start && p.week <= end ? state.plan : E.buildPlan(split, Object.assign({}, p, { week: start }));
+      blocks.push({ start, end, plan });
+    }
+    return blocks;
+  }
+
+  async function downloadPdf(btn) {
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Making PDF…';
+    try {
+      await loadScript('js/vendor/jspdf.umd.min.js');
+      await loadScript('js/vendor/jspdf.plugin.autotable.min.js');
+      const { plan, profile: p } = state;
+      const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+      const W = doc.internal.pageSize.getWidth(), M = 40;
+      const orange = [232, 80, 15];
+      let y = 50;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.text('Workout Splits: your program', M, y);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90);
+      y += 18; doc.text(pdfText(`${plan.split.name} · ${p.days} days/week · ${p.minutes} min · ${p.weeks} weeks${p.cycle > 1 ? ' · cycle ' + p.cycle : ''} · variety: ${E.VARIETY[p.variety].label}`), M, y);
+      y += 14; doc.text(pdfText(`${p.age} yrs · ${goalLabel(p)} · ${p.level} · ${EQUIP[p.equipment]}${p.weight ? ' · ' + p.weight + ' kg' : ''} · made ${new Date().toLocaleDateString()}`), M, y);
+      doc.setTextColor(0);
+      y += 16;
+      window.autoTable(doc, {
+        startY: y, margin: { left: M, right: M }, theme: 'grid', styles: { fontSize: 9, halign: 'center' }, headStyles: { fillColor: orange },
+        head: [plan.schedule.map((d) => d.name)],
+        body: [plan.schedule.map((d) => (d.train >= 0 ? pdfText(plan.days[d.train].name) : 'Rest'))],
+      });
+      y = doc.lastAutoTable.finalY + 16;
+      doc.setFontSize(9); doc.setTextColor(90);
+      const why = doc.splitTextToSize(pdfText(`Why it works: ${plan.split.evidence}`), W - 2 * M);
+      doc.text(why, M, y);
+      doc.setTextColor(0);
+      y += why.length * 11 + 22;
+      for (const b of programBlocks(plan.split, p)) {
+        if (y > 700) { doc.addPage(); y = 50; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(...orange);
+        doc.text(b.start === b.end ? `Week ${b.start}` : `Weeks ${b.start}–${b.end}`, M, y);
+        doc.setTextColor(0);
+        y += 8;
+        for (const d of b.plan.days) {
+          window.autoTable(doc, {
+            startY: y + 6, margin: { left: M, right: M }, theme: 'striped', styles: { fontSize: 9, cellPadding: 4 }, headStyles: { fillColor: [40, 44, 52] },
+            head: [[pdfText(`${d.name} (~${d.minutes} min)`), 'Sets x reps', 'Effort', 'Rest']],
+            body: d.items.map((it) => [pdfText(it.ex.name), pdfText(`${it.sets} x ${it.reps}`), pdfText(/^\d/.test(it.rir) ? it.rir + ' RIR' : it.rir), pdfText(it.rest)]),
+            columnStyles: { 0: { cellWidth: 190 } },
+          });
+          y = doc.lastAutoTable.finalY + 4;
+        }
+        y += 18;
+      }
+      doc.addPage();
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.text('How to progress', M, 50);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      const notes = [
+        'Double progression: when you reach the top of the rep range on every set, add 2.5-5% load next time.',
+        'RIR = reps in reserve, how many more reps you could have done. Go closer to failure on isolation work than on heavy compounds.',
+        'Take an easier deload week every 6-8 weeks, or when progress stalls.',
+        p.weight ? `Protein: ${Math.round(p.weight * 1.6)}-${Math.round(p.weight * 2.2)} g per day (1.6-2.2 g/kg).` : 'Protein: 1.6-2.2 g per kg of body weight per day.',
+        'Cardio: add Zone 2 cardio and, if your goal allows, one or two interval sessions on non-lifting days.',
+        'Not medical advice. Check with a doctor before starting if you have a medical condition.',
+      ];
+      let ny = 72;
+      notes.forEach((n) => { const lines = doc.splitTextToSize('• ' + n, W - 2 * M); doc.text(lines, M, ny); ny += lines.length * 13 + 6; });
+      const pages = doc.getNumberOfPages();
+      for (let i = 1; i <= pages; i++) {
+        doc.setPage(i); doc.setFontSize(8); doc.setTextColor(140);
+        doc.text(`Workout Splits by TechSwitch · techswitch.in/splits · page ${i} of ${pages}`, M, doc.internal.pageSize.getHeight() - 20);
+      }
+      const name = `workout-splits-${plan.split.id}-${p.weeks}wk.pdf`;
+      const how = await WS.native.saveFile(name, 'application/pdf', doc.output('datauristring').split(',')[1], true);
+      btn.textContent = how === 'shared' ? 'PDF ready ✓' : 'Downloaded ✓';
+    } catch (err) {
+      btn.textContent = 'PDF failed';
+      console.error(err);
+    }
+    setTimeout(() => { btn.textContent = label; btn.disabled = false; }, 2500);
+  }
+
   function planText() {
     const { plan, profile: p } = state;
-    const lines = [`${plan.split.name}: ${p.days} days/week (${GOALS[p.goal]}, ${p.level}), week ${p.week} of ${p.weeks}${p.cycle > 1 ? `, cycle ${p.cycle}` : ''}`, ''];
+    const lines = [`${plan.split.name}: ${p.days} days/week (${goalLabel(p)}, ${p.level}), week ${p.week} of ${p.weeks}${p.cycle > 1 ? `, cycle ${p.cycle}` : ''}`, ''];
     plan.days.forEach((d) => {
       lines.push(`== ${d.name} (~${d.minutes} min) ==`);
       d.items.forEach((it) => lines.push(`- ${it.ex.name}: ${it.sets} x ${it.reps}, RIR ${it.rir}, rest ${it.rest}`));
@@ -312,7 +471,7 @@
   }
 
   function onResultsClick(e) {
-    const t = e.target.closest('[data-split],[data-swap],[data-ex],[data-nav],#copy-plan,#reshuffle');
+    const t = e.target.closest('[data-split],[data-swap],[data-ex],[data-nav],#copy-plan,#pdf-plan,#reshuffle');
     if (!t) return;
     if (t.dataset.ex) { openExercise(t.dataset.ex); return; }
     if (t.dataset.split) { run(t.dataset.split); return; }
@@ -326,6 +485,7 @@
       return;
     }
     if (t.id === 'reshuffle') { state.seed = newSeed(); run(state.splitId); return; }
+    if (t.id === 'pdf-plan') { downloadPdf(t); return; }
     if (t.id === 'copy-plan') {
       const done = () => { t.textContent = 'Copied ✓'; setTimeout(() => (t.textContent = 'Copy as text'), 1500); };
       if (navigator.clipboard) navigator.clipboard.writeText(planText()).then(done, () => {});
@@ -396,6 +556,7 @@
       <div class="pill-group" id="area-pills">${['all'].concat(Object.keys(WS.AREAS)).map((a, i) => `<button class="pill${i ? '' : ' active'}" data-area="${a}">${a === 'all' ? 'All' : WS.AREAS[a]}</button>`).join('')}</div>
       <div class="filters">
         <input type="search" id="ex-search" placeholder="Search exercises…">
+        <select id="ex-tier"><option value="">All tiers</option><option value="S">S: top picks</option><option value="A">A: excellent</option><option value="B">B: alternatives</option></select>
         <select id="ex-eq"><option value="">Any equipment</option>${Object.entries(EQ_LABEL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
       </div>
       <div class="grid" id="ex-grid"></div>`;
@@ -403,10 +564,11 @@
     const draw = () => {
       const q = $('#ex-search').value.trim().toLowerCase();
       const eq = $('#ex-eq').value;
+      const tier = $('#ex-tier').value;
       const list = WS.EXERCISES.filter((ex) => {
         const m = WS.PATTERNS[ex.pattern].muscle || 'functional';
         const exArea = ex.pattern === 'carry' ? 'functional' : m;
-        return (area === 'all' || exArea === area) && (!eq || ex.eq === eq) && (!q || ex.name.toLowerCase().includes(q));
+        return (area === 'all' || exArea === area) && (!eq || ex.eq === eq) && (!tier || ex.tier === tier) && (!q || ex.name.toLowerCase().includes(q));
       });
       $('#ex-grid').innerHTML = list.map(exerciseCard).join('') || '<p class="muted">No exercises match.</p>';
     };
@@ -426,13 +588,14 @@
     });
     $('#ex-search').addEventListener('input', draw);
     $('#ex-eq').addEventListener('change', draw);
+    $('#ex-tier').addEventListener('change', draw);
   }
 
   // ---------- diet ----------
 
   const fmt = (n) => (n == null ? '—' : String(Math.round(n * 10) / 10));
 
-  function foodCard(f, rank, sort) {
+  function foodCard(f, rank, sort, advice) {
     const cal = { p: f.p * 4, c: f.c * 4, f: f.f * 9 };
     const tot = cal.p + cal.c + cal.f || 1;
     const metric = { protein: 'p', leanProtein: 'p', lowCarb: 'c', carbs: 'c', lowFat: 'f', fat: 'f', fiber: 'fib', lowCal: 'kcal' }[sort];
@@ -447,6 +610,7 @@
         <span${metric === 'fib' ? ' class="hl"' : ''}>${fmt(f.fib)} g fibre</span></p>
       ${sort === 'leanProtein' ? `<p class="small"><b>${fmt(WS.proteinPer100kcal(f))} g</b> protein per 100 kcal</p>` : ''}
       ${f.rich.length ? `<div class="chips">${f.rich.map((n) => `<span class="chip">${WS.NUTRIENTS[n]}</span>`).join('')}</div>` : ''}
+      ${WS.adviceBadge(advice, esc)}
       ${f.note ? `<p class="small muted">${esc(f.note)}</p>` : ''}
       <p class="countries">${f.countries.map((c) => `<span title="${WS.COUNTRIES[c]}">${c}</span>`).join('')}</p>
     </article>`;
@@ -463,7 +627,10 @@
         <label>Country<select id="diet-country"><option value="">All countries</option>${opt(WS.COUNTRIES)}</select></label>
         <label>Rank by<select id="diet-sort">${opt(WS.FOOD_SORTS, (s) => s.label)}</select></label>
         <label>Rich in<select id="diet-nutrient"><option value="">Any nutrient</option>${opt(WS.NUTRIENTS)}</select></label>
+        <label>Health condition<select id="diet-cond"><option value="">None</option>${opt(WS.CONDITIONS, (c) => c.label)}</select></label>
+        <label class="check"><input type="checkbox" id="diet-hide"> Hide foods to limit</label>
       </div>
+      <div id="diet-cond-card"></div>
       <div class="pill-group" id="diet-quick">
         ${[['protein', ''], ['leanProtein', ''], ['lowCarb', ''], ['fiber', ''], ['protein', 'b12'], ['protein', 'iron'], ['protein', 'calcium'], ['protein', 'omega3'], ['protein', 'd'], ['protein', 'c']]
           .map(([s, n]) => `<button class="pill" data-sort="${s}" data-nutrient="${n}">${n ? WS.NUTRIENTS[n] : WS.FOOD_SORTS[s].label}</button>`).join('')}
@@ -489,11 +656,15 @@
       const sort = $('#diet-sort').value, nutrient = $('#diet-nutrient').value;
       const allowed = WS.DIETS[diet].includes;
       const key = WS.FOOD_SORTS[sort].key;
+      const cond = $('#diet-cond').value, hide = $('#diet-hide').checked;
+      const advice = (food) => WS.foodAdvice(food, cond);
       const list = WS.FOODS
         .filter((f) => allowed.includes(f.diet) && (!country || f.countries.includes(country)) && (!nutrient || f.rich.includes(nutrient)))
+        .filter((f) => !(hide && (advice(f) || {}).level === 'limit'))
         .sort((a, b) => key(a) - key(b));
       const shown = showAll ? list : list.slice(0, 24);
-      $('#food-grid').innerHTML = shown.map((f, i) => foodCard(f, i + 1, sort)).join('') || '<p class="muted">No foods match these filters.</p>';
+      $('#diet-cond-card').innerHTML = WS.conditionCard(cond, cite, esc);
+      $('#food-grid').innerHTML = shown.map((f, i) => foodCard(f, i + 1, sort, advice(f))).join('') || '<p class="muted">No foods match these filters.</p>';
       $('#food-more').innerHTML = list.length > shown.length ? `<button id="food-all">Show all ${list.length} foods</button>` : (list.length ? `${list.length} food${list.length === 1 ? '' : 's'}` : '');
       panel.querySelectorAll('#diet-quick .pill').forEach((b) => b.classList.toggle('active', b.dataset.sort === sort && b.dataset.nutrient === nutrient));
 
@@ -503,7 +674,7 @@
         ? `<p class="target"><b>Your protein target: ${Math.round(p.weight * 1.6)}–${Math.round(p.weight * 2.2)} g/day</b> (1.6–2.2 g per kg at ${p.weight} kg). ${cite(['morton2018'])}</p>`
         : `<p class="target small muted">Add your body weight in the <a href="#planner">Planner</a> to see your daily protein target.</p>`;
     };
-    panel.addEventListener('change', (e) => { if (e.target.matches('select')) { showAll = false; draw(); } });
+    panel.addEventListener('change', (e) => { if (e.target.matches('select, #diet-hide')) { showAll = false; draw(); } });
     panel.addEventListener('click', (e) => {
       const q = e.target.closest('#diet-quick .pill');
       if (q) { $('#diet-sort').value = q.dataset.sort; $('#diet-nutrient').value = q.dataset.nutrient; showAll = false; draw(); }
@@ -539,7 +710,7 @@
     return `<article class="card">
       <h3>${esc(r.name)}</h3><div class="chips"><span class="chip accent">${r.minutes} min</span><span class="chip">${esc(r.when)}</span></div>
       <p>${esc(r.purpose)}</p>
-      <div class="pose-list">${(r.poses || r.moves).map((x) => `<span class="chip">${esc(x)}</span>`).join('')}</div>
+      <div class="pose-list">${(r.poses || r.moves).map((x) => `<a class="chip chip-link" href="${WS.yt(channel, x)}" target="_blank" rel="noopener" title="Search on ${esc(WS.CHANNELS[channel].name)}">${esc(x)} ▶</a>`).join('')}</div>
       <p class="small">${esc(r.why)} ${cite(r.refs)}</p>
       <div class="vids">${vid(channel, r.query)}</div></article>`;
   }
@@ -554,7 +725,7 @@
       <div class="grid">${WS.YOGA_ROUTINES.map((r) => routineCard(r, 'adriene')).join('')}</div>
       <h2 style="margin-top:28px">Pose library</h2>
       <div class="grid">${WS.YOGA_POSES.map((y) => `<article class="card"><h4>${esc(y.name)} <span class="muted small">${esc(y.sanskrit)}</span></h4>
-        <p class="small"><b>Targets:</b> ${esc(y.targets)}</p><p class="small muted">${esc(y.cue)}</p><div class="vids">${vid('adriene', y.query)}</div></article>`).join('')}</div>`;
+        <p class="small"><b>Targets:</b> ${esc(y.targets)}</p><p class="small muted">${esc(y.cue)}</p><a class="btn small yt-btn" href="${WS.yt('adriene', y.query)}" target="_blank" rel="noopener">▶ Search “${esc(y.name)}” on Yoga With Adriene</a></article>`).join('')}</div>`;
   }
 
   function renderPilates() {
@@ -615,15 +786,16 @@
 
   // ---------- boot ----------
 
-  // Shared helpers for the tabs in wellness-ui.js.
-  WS.ui = { $, esc, cite, state };
+  // Shared helpers for the tabs in wellness-ui.js and tracker-ui.js.
+  WS.ui = { $, esc, cite, state, searchLinks, rerun: () => run(state.splitId) };
+  buildNav();
 
+  $('#year').textContent = new Date().getFullYear();
   $('#footer-channels').textContent = Object.values(WS.CHANNELS).map((c) => c.name).join(', ');
   // Inside the Android / iOS app (Capacitor injects window.Capacitor): hide web-only bits.
   if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
     document.documentElement.classList.add('native');
   }
-  loadProfile();
   $('#profile-form').addEventListener('submit', (e) => { e.preventDefault(); run(); $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   $('#results').addEventListener('click', onResultsClick);
   const modal = $('#ex-modal');
@@ -633,6 +805,12 @@
     if (e.target.id === 'week-select') { state.week = Number(e.target.value); run(state.splitId); }
   });
   window.addEventListener('hashchange', showTab);
-  showTab();
-  run();
+
+  // Saved data loads asynchronously (native storage in the apps), then the page renders.
+  WS.store.init().then(() => {
+    loadSaved();
+    showTab();
+    run(state.splitId);
+    WS.checkReminder();
+  });
 })(window.WS = window.WS || {});

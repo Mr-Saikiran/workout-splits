@@ -23,7 +23,7 @@
 
   // ---------- Recipes ----------
 
-  function recipeCard(r) {
+  function recipeCard(r, advice) {
     const { esc } = ui();
     const cal = { p: r.p * 4, c: r.c * 4, f: r.f * 9 };
     const tot = cal.p + cal.c + cal.f || 1;
@@ -36,13 +36,14 @@
         <span><i class="dot mb-c"></i>${r.c} g carbs</span><span><i class="dot mb-f"></i>${r.f} g fat</span><span class="muted">per serving</span></p>
       <h5>Ingredients</h5>
       <ul class="ingredients">${r.ingredients.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
+      ${WS.adviceBadge(advice, esc)}
       ${r.tip ? `<p class="small muted">${esc(r.tip)}</p>` : ''}
       <a class="btn small yt-btn" href="${WS.ytSearch(r.name + ' recipe')}" target="_blank" rel="noopener">▶ Watch on YouTube</a>
     </article>`;
   }
 
   WS.renderRecipes = function renderRecipes() {
-    const { $, cite } = ui();
+    const { $, cite, esc } = ui();
     const panel = $('#tab-recipes');
     panel.innerHTML = `
       <div class="hero"><h1>High-protein recipes.</h1>
@@ -60,7 +61,10 @@
         <label>Time<select id="rc-time"><option value="">Any time</option><option value="15">15 min or less</option><option value="30">30 min or less</option><option value="45">45 min or less</option></select></label>
         <label>Sort by<select id="rc-sort">${options(Object.fromEntries(Object.entries(WS.RECIPE_SORTS).map(([k, v]) => [k, v.label])), 'protein')}</select></label>
         <label>Search<input type="search" id="rc-search" placeholder="e.g. curry, rice, wrap"></label>
+        <label>Health condition<select id="rc-cond"><option value="">None</option>${options(Object.fromEntries(Object.entries(WS.CONDITIONS).map(([k, v]) => [k, v.label])))}</select></label>
+        <label class="check"><input type="checkbox" id="rc-hide"> Hide recipes to limit</label>
       </div>
+      <div id="rc-cond-card"></div>
       <div class="pill-group" id="rc-quick">
         <button class="pill" data-set="main=egg">🥚 Egg recipes</button>
         <button class="pill" data-set="main=chicken">🍗 Chicken recipes</button>
@@ -80,14 +84,18 @@
       const time = Number(val('time')) || Infinity, q = val('search').trim().toLowerCase();
       const allowed = WS.DIETS[val('diet')].includes;
       const key = WS.RECIPE_SORTS[val('sort')].key;
+      const cond = val('cond'), hide = $('#rc-hide').checked;
+      const advice = (r) => WS.recipeAdvice(r, cond);
       const list = WS.RECIPES.filter((r) => (!goal || r.goal.includes(goal)) && allowed.includes(r.diet)
         && (!main || r.main.includes(main)) && (!meal || r.meal === meal) && (!cuisine || r.cuisine === cuisine)
-        && r.mins <= time && (!q || (r.name + ' ' + r.ingredients.join(' ')).toLowerCase().includes(q)))
+        && r.mins <= time && (!q || (r.name + ' ' + r.ingredients.join(' ')).toLowerCase().includes(q))
+        && !(hide && (advice(r) || {}).level === 'limit'))
         .sort((a, b) => key(a) - key(b));
       $('#rc-count').textContent = `${list.length} recipe${list.length === 1 ? '' : 's'}`;
-      $('#rc-grid').innerHTML = list.map(recipeCard).join('') || '<p class="muted">No recipes match. Try fewer filters.</p>';
+      $('#rc-cond-card').innerHTML = WS.conditionCard(cond, cite, esc);
+      $('#rc-grid').innerHTML = list.map((r) => recipeCard(r, advice(r))).join('') || '<p class="muted">No recipes match. Try fewer filters.</p>';
     };
-    panel.addEventListener('change', (e) => { if (e.target.matches('select')) draw(); });
+    panel.addEventListener('change', (e) => { if (e.target.matches('select, #rc-hide')) draw(); });
     $('#rc-search').addEventListener('input', draw);
     $('#rc-quick').addEventListener('click', (e) => {
       const b = e.target.closest('[data-set]');
@@ -367,6 +375,10 @@
           <button class="btn primary" id="breath-go">Start</button>
         </article>
       </div>
+      <h2 style="margin-top:28px">Affirmations (30–60 minutes)</h2>
+      <p class="small muted">Long affirmation videos to play while you rest or fall asleep. Links search YouTube for videos over 20 minutes.</p>
+      <div class="link-grid">${WS.AFFIRMATION_LINKS.map((l) => `<a class="card link-card" href="${WS.ytLongSearch(l.q)}" target="_blank" rel="noopener">
+        <span class="small muted">Affirmations</span><b>${esc(l.title)}</b><span class="small">▶ YouTube</span></a>`).join('')}</div>
       <h2 style="margin-top:28px">Guided meditations &amp; chants</h2>
       <div class="link-grid">${WS.MEDITATION_LINKS.map((l) => `<a class="card link-card" href="${l.url || WS.ytSearch(l.q)}" target="_blank" rel="noopener">
         <span class="small muted">${esc(l.kind)}</span><b>${esc(l.title)}</b><span class="small">${l.url ? '↗ Open' : '▶ YouTube'}</span></a>`).join('')}</div>`;

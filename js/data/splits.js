@@ -291,6 +291,63 @@
         return days === 2 ? [A, B] : [A, B, C];
       },
     },
+    {
+      id: 'gvt', name: 'German Volume Training (5×10)', category: 'Bodybuilding', days: [3],
+      summary: 'Two big exercises per day for 5 sets of 10 with the same weight and short rests, then light accessories. The research-backed version of the classic 10×10.',
+      bestFor: 'Intermediates after a short, brutal hypertrophy block (4–6 weeks)',
+      pros: ['Simple: a few exercises, lots of quality volume', 'Short rests keep sessions quick'],
+      cons: ['Very fatiguing; run it for 4–6 weeks, not forever', 'Each muscle trained only about once a week'],
+      evidence: 'A trial of German Volume Training found 5 sets of 10 built as much or more muscle and strength than the original 10 sets of 10, so this uses 5×10.',
+      refs: ['amirthalingam2017'],
+      fit: { goals: { muscle: 4, strength: 2, fatloss: 2, recomp: 3, general: 1, athletic: 1 }, level: { beginner: 1, intermediate: 4, advanced: 4 } },
+      build() {
+        return [
+          D('Chest & Back', ['horizontalPress', 'horizontalRow', 'chestFly', 'pullover'], 'gvt'),
+          D('Legs & Abs', ['squat', 'legCurl', 'calf', 'core'], 'gvt'),
+          D('Shoulders & Arms', ['tricepExt', 'bicepCurl', 'lateralRaise', 'rearDelt'], 'gvt'),
+        ];
+      },
+    },
+    {
+      id: 'strength-531', name: '5/3/1 Boring But Big', category: 'Strength', days: [4],
+      summary: 'One main barbell lift per day on a 4-week wave (5s, 3s, 5/3/1, deload) at percentages of a training max, followed by 5×10 of the same lift and a little assistance work.',
+      bestFor: 'Intermediates who want steady long-term strength plus size, with a barbell',
+      pros: ['Slow, steady progress you can run for years', 'Built-in deload every 4th week', 'Heavy work and volume in one plan'],
+      cons: ['Needs a barbell and rack', 'Progress feels slow at first by design'],
+      evidence: '5/3/1 itself hasn\'t been tested in trials, but it combines what has: heavy loads for strength, enough weekly volume for size, and regular deloads.',
+      refs: ['load2017', 'volume2017'],
+      needs: 'barbell',
+      weekly: true,
+      fit: { goals: { muscle: 4, strength: 5, fatloss: 2, recomp: 3, general: 2, athletic: 4 }, level: { beginner: 2, intermediate: 5, advanced: 4 } },
+      build() {
+        return [
+          D('Press day', ['verticalPress', 'verticalPull', 'bicepCurl', 'core'], '531'),
+          D('Deadlift day', ['hinge', 'legCurl', 'core'], '531'),
+          D('Bench day', ['horizontalPress', 'horizontalRow', 'tricepExt', 'lateralRaise'], '531'),
+          D('Squat day', ['squat', 'lunge', 'calf', 'core'], '531'),
+        ];
+      },
+    },
+    {
+      id: 'hybrid', name: 'Hybrid / Hyrox-style Training', category: 'Functional', days: [4, 5],
+      summary: 'Strength days plus running and functional "station" days (sled, lunges, carries, rowing) for hybrid fitness and Hyrox-style races.',
+      bestFor: 'People who want to be strong and fit at once, or are training for a Hyrox or similar race',
+      pros: ['Builds strength and endurance together', 'Varied, competitive and fun'],
+      cons: ['Less muscle growth than a pure bodybuilding split', 'Needs good recovery between hard days'],
+      evidence: 'Strength and endurance training can be combined; the interference with muscle and strength gains is small and comes mostly from high volumes of running.',
+      refs: ['wilson2012', 'who2020'],
+      fit: { goals: { muscle: 2, strength: 3, fatloss: 4, recomp: 3, general: 4, athletic: 5 }, level: { beginner: 2, intermediate: 5, advanced: 5 } },
+      build(days) {
+        const w = [
+          D('Lower Strength', ['squat', 'hinge', 'lunge', 'core']),
+          D('Run Intervals + Stations', ['conditioning', 'lunge', 'carry', 'power', 'core'], 'circuit'),
+          D('Upper Strength', ['horizontalPress', 'verticalPull', 'verticalPress', 'horizontalRow', 'carry']),
+          D('Race Simulation', ['conditioning', 'power', 'lunge', 'carry', 'conditioning'], 'circuit'),
+          D('Zone 2 + Core', ['conditioning', 'core', 'carry']),
+        ];
+        return w.slice(0, days);
+      },
+    },
   ];
 
   WS.SPLIT_BY_ID = Object.fromEntries(WS.SPLITS.map((s) => [s.id, s]));

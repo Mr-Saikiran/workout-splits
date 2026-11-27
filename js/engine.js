@@ -47,7 +47,7 @@
     const allowed = EQUIP[p.equipment];
     const ag = ageGroup(p.age);
     const maxSkill = p.level === 'beginner' || ag === 'youth' ? 2 : 3;
-    const strengthy = p.goal === 'strength' || mode === 'strength' || mode === '5x5';
+    const strengthy = p.goal === 'strength' || mode === 'strength' || mode === '5x5' || mode === '531';
     return WS.EXERCISES
       .filter((e) => e.pattern === pattern && allowed.includes(e.eq))
       .map((e, i) => {
@@ -62,7 +62,7 @@
         if (p.bodyType === 'higher' && e.impact) s -= 1.5;
         if (p.equipment === 'gym' && e.eq === 'band') s -= 1.5; // bands stand in for home training
         if (strengthy && e.main) s += 2;
-        if (mode === '5x5' && e.eq === 'barbell') s += 3;
+        if ((mode === '5x5' || mode === '531') && e.eq === 'barbell') s += 3;
         if (p.goal === 'athletic' && e.main) s += 0.5;
         const n = used[e.id] || 0;
         if (n && !(strengthy && e.main)) s -= 2 * n;
@@ -105,7 +105,7 @@
   function varyPick(scored, p, mode, rand) {
     const v = VARIETY[p.variety] || VARIETY.nil;
     if (v.pool < 2 || scored.length < 2) return scored;
-    const strengthy = p.goal === 'strength' || mode === 'strength' || mode === '5x5';
+    const strengthy = p.goal === 'strength' || mode === 'strength' || mode === '5x5' || mode === '531';
     const mainLift = strengthy && scored[0].e.main;
     if (mainLift && p.variety !== 'extreme') return scored;
     const best = scored[0].s;
@@ -129,6 +129,15 @@
     if (kind === 'carry') return { reps: '30–40 m', rir: 'Heavy, tall posture', rest: '90 s' };
 
     if (mode === '5x5') return { reps: '5', rir: '1–2 (add 2.5 kg next time)', rest: '3–5 min' };
+    // 5/3/1: the main lift follows a 4-week wave on a training max (TM, 90% of 1RM),
+    // then 5×10 "Boring But Big" at 50–60% of TM.
+    if (mode === '531' && isMain) {
+      const w = WAVE_531[((p.week || 1) - 1) % 4];
+      return w.deload
+        ? { reps: `${w.reps} @ ${w.pct} TM`, rir: 'Deload week: easy, no extra sets', rest: '2–3 min' }
+        : { reps: `${w.reps} @ ${w.pct} TM, then 5×10 @ 50–60% TM`, rir: 'Last wave set: as many good reps as possible', rest: '3 min' };
+    }
+    if (mode === '531') return { reps: kind === 'compound' ? '8–12' : '10–15', rir: '1–2', rest: '90 s' };
     if (mode === 'circuit') return { reps: kind === 'compound' ? '8–12' : '12–15', rir: '2', rest: 'Next exercise; 2 min between rounds' };
 
     if (ag === 'youth') return { reps: kind === 'compound' ? '8–12' : '10–15', rir: '2–3 (technique first)', rest: '90 s' };
@@ -150,16 +159,26 @@
     if (goal === 'fatloss') {
       return kind === 'compound' ? { reps: '6–12', rir: rir(true), rest: '90 s–2 min' } : { reps: '12–20', rir: rir(false), rest: '60 s (superset OK)' };
     }
+    // Toning: muscle plus fat loss, moderate reps and shorter rests.
+    if (p.tone) return kind === 'compound' ? { reps: '8–12', rir: rir(true), rest: '90 s' } : { reps: '12–15', rir: rir(false), rest: '60 s (superset OK)' };
     // muscle / recomp
     return kind === 'compound' ? { reps: '6–10', rir: rir(true), rest: '2–3 min' } : { reps: '10–15', rir: rir(false), rest: isoRest };
   }
 
   const MIN_PER_SET = { compound: 3, iso: 2, core: 1.5, power: 2, balance: 1.5, carry: 2 };
 
+  const WAVE_531 = [
+    { reps: '5, 5, 5+', pct: '65 / 75 / 85%' },
+    { reps: '3, 3, 3+', pct: '70 / 80 / 90%' },
+    { reps: '5, 3, 1+', pct: '75 / 85 / 95%' },
+    { reps: '5, 5, 5', pct: '40 / 50 / 60%', deload: true },
+  ];
+
   function itemMinutes(it, mode) {
     if (it.kind === 'conditioning') return 12;
     if (mode === 'circuit') return it.sets * 1.5;
-    const per = (mode === 'strength' || mode === '5x5') && it.kind === 'compound' ? 4 : MIN_PER_SET[it.kind];
+    if (it.gvt) return it.sets * 2.5;
+    const per = (mode === 'strength' || mode === '5x5' || mode === '531') && it.kind === 'compound' ? 4 : MIN_PER_SET[it.kind];
     return it.sets * per;
   }
 
@@ -176,7 +195,7 @@
     if (p.goal === 'athletic' && split.id !== 'athletic') {
       days.slice(0, 2).forEach((d) => { if (!d.slots.includes('power')) d.slots.unshift('power'); });
     }
-    const wantsFinisher = p.goal === 'fatloss' || (p.bodyType === 'higher' && (p.goal === 'recomp' || p.goal === 'general'));
+    const wantsFinisher = p.goal === 'fatloss' || p.tone || (p.bodyType === 'higher' && (p.goal === 'recomp' || p.goal === 'general'));
     if (wantsFinisher && split.id !== 'circuit') {
       days.slice(0, 2).forEach((d) => { if (!d.slots.includes('conditioning')) d.slots.push('conditioning'); });
     }
@@ -237,8 +256,18 @@
         else sets = perSlot[pat.muscle] || 3;
         if (d.focusSlot === slot) sets = Math.min(sets + 1, 5);
 
-        d.items.push(Object.assign({ slot, kind: pat.kind, ex, alts: ranked, sets, focus: d.focusSlot === slot },
-          scheme(pat.kind, p, d.mode, isMain)));
+        const item = Object.assign({ slot, kind: pat.kind, ex, alts: ranked, sets, focus: d.focusSlot === slot },
+          scheme(pat.kind, p, d.mode, isMain));
+        // German Volume Training: the day's first two exercises are 5×10 (Amirthalingam 2017).
+        if (d.mode === 'gvt' && d.items.length < 2) {
+          Object.assign(item, { sets: 5, reps: '10', rir: 'Same weight every set (start about 60% of 1RM)', rest: '60–90 s', gvt: true, locked: true });
+        } else if (d.mode === 'gvt') {
+          Object.assign(item, { sets: 3, reps: '10–12' });
+        }
+        if (d.mode === '531' && isMain) {
+          Object.assign(item, { sets: WAVE_531[((p.week || 1) - 1) % 4].deload ? 3 : 8, locked: true });
+        }
+        d.items.push(item);
       });
 
       // Fit the session into the time available: trim isolation sets, then
@@ -246,7 +275,7 @@
       const budget = p.minutes;
       const trim = (kinds, floor) => {
         for (let guard = 0; dayMinutes(d) > budget && guard < 40; guard++) {
-          const it = d.items.slice().reverse().find((x) => kinds.includes(x.kind) && x.sets > floor && !x.focus);
+          const it = d.items.slice().reverse().find((x) => kinds.includes(x.kind) && x.sets > floor && !x.focus && !x.locked);
           if (!it) break;
           it.sets--;
         }
@@ -255,7 +284,7 @@
         trim(['iso', 'core'], 2);
         trim(['compound'], 2);
         while (dayMinutes(d) > budget && d.items.length > 4) {
-          const idx = d.items.map((x) => x.kind).lastIndexOf('iso');
+          const idx = d.items.map((x) => (x.kind === 'iso' && !x.locked ? 'iso' : '')).lastIndexOf('iso');
           if (idx < 0) break;
           d.items.splice(idx, 1);
         }
@@ -351,6 +380,9 @@
     return { split, score, freq, reasons, cautions };
   }
 
+  // "Get toned" runs as recomposition with toning reps and a conditioning finisher.
+  const normalize = (p) => (p.goal === 'tone' ? Object.assign({}, p, { goal: 'recomp', tone: true }) : p);
+
   function recommend(p) {
     const ranked = WS.SPLITS.map((s) => scoreSplit(s, p)).filter(Boolean).sort((a, b) => b.score - a.score);
     const top = ranked.length ? ranked[0].score : 1;
@@ -370,5 +402,5 @@
       .map((x) => x.r);
   }
 
-  WS.engine = { recommend, buildPlan, weeklyTargets, ageGroup, frequency, rankExercises, suggest, EQUIP, VARIETY };
+  WS.engine = { recommend, buildPlan, normalize, weeklyTargets, ageGroup, frequency, rankExercises, suggest, EQUIP, VARIETY };
 })(window.WS = window.WS || {});

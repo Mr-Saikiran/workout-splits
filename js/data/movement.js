@@ -37,6 +37,20 @@
       why: 'Builds pulling and pushing volume with built-in rest; a calisthenics staple for getting reps in.',
       refs: [], tags: { muscle: 2, athletic: 2, recomp: 2 },
     },
+    {
+      id: '12-3-30', name: '12-3-30 Treadmill Walk', minutes: 30, level: 'Beginner',
+      protocol: '12% incline, 3 mph (about 4.8 km/h), 30 minutes; build up from 10–15 minutes',
+      modes: 'Treadmill',
+      why: 'A popular routine with little direct research, but it is simply steep incline walking: steady Zone 2-ish cardio that is easy on the joints and counts toward WHO activity targets. Avoid holding the rails.',
+      refs: ['who2020'], tags: { fatloss: 3, general: 3, higher: 3, recomp: 2 },
+    },
+    {
+      id: 'hyrox-sim', name: 'Hyrox-style Simulation', minutes: 60, level: 'Advanced',
+      protocol: '8 rounds: 1 km run, then one station each round: ski erg, sled push, sled pull, burpee broad jumps, row, farmer\'s carry, sandbag lunges, wall balls',
+      modes: 'Gym with sled, rower and ski erg (scale distances down to start)',
+      why: 'Race-specific practice for hybrid fitness events, mixing running endurance with strength-endurance stations.',
+      refs: ['wilson2012'], tags: { athletic: 4, fatloss: 2 },
+    },
   ];
 
   // Calisthenics progressions: master each step (3 × target reps) before moving on.

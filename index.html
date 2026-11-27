@@ -6,30 +6,20 @@
   <meta name="theme-color" content="#0f1115">
   <title>Workout Splits</title>
   <meta name="description" content="Free, open-source, science-backed workout split planner. Get a training split and full program for your age, gender, body type and goal, plus HIIT, yoga, Pilates and longevity guides.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="img/favicon-192.png">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="#planner">
-        <span class="brand-mark">WS</span>
+        <img class="brand-mark" src="img/logo-tile.png" width="40" height="40" alt="">
         <span><strong>Workout Splits</strong><small>Science-backed &amp; open source</small></span>
       </a>
-      <nav class="tabs" id="tabs" aria-label="Sections">
-        <a href="#planner" data-tab="planner">Planner</a>
-        <a href="#splits" data-tab="splits">Splits</a>
-        <a href="#exercises" data-tab="exercises">Exercises</a>
-        <a href="#diet" data-tab="diet">Diet</a>
-        <a href="#recipes" data-tab="recipes">Recipes</a>
-        <a href="#hiit" data-tab="hiit">HIIT &amp; Calisthenics</a>
-        <a href="#yoga" data-tab="yoga">Yoga</a>
-        <a href="#pilates" data-tab="pilates">Pilates</a>
-        <a href="#meditation" data-tab="meditation">Meditation</a>
-        <a href="#sleep" data-tab="sleep">Sleep</a>
-        <a href="#longevity" data-tab="longevity">Longevity</a>
-        <a href="#science" data-tab="science">Science</a>
-      </nav>
+      <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+      <button class="menu-btn" id="menu-btn" aria-haspopup="dialog" aria-controls="menu">☰ <span>All modules</span></button>
     </div>
   </header>
 
@@ -38,7 +28,7 @@
     <section id="tab-planner" class="tab-panel">
       <div class="hero">
         <h1>Find the workout split that fits <em>you</em>.</h1>
-        <p>Tell us about yourself and your goal. We rank 15 training splits, from the Bro Split to Upper/Lower to Active Aging, against published research, then build your full week of training.</p>
+        <p>Tell us about yourself and your goal. We rank every training split, from the Bro Split to 5/3/1 to Active Aging, against published research, then build your full program, week by week.</p>
       </div>
       <div class="planner">
         <form id="profile-form" class="card form" autocomplete="off">
@@ -66,7 +56,8 @@
               <option value="muscle">Build muscle (hypertrophy)</option>
               <option value="strength">Get stronger</option>
               <option value="fatloss">Lose fat, keep muscle</option>
-              <option value="recomp">Tone up / recomposition</option>
+              <option value="tone">Get toned</option>
+              <option value="recomp">Recomposition (lose fat, build muscle)</option>
               <option value="general">General health &amp; longevity</option>
               <option value="athletic">Athletic performance</option>
             </select>
@@ -132,24 +123,21 @@
           </label>
           <label>Body weight (kg) <span class="opt">(optional, for protein)</span><input type="number" name="weight" min="30" max="250" placeholder="e.g. 75"></label>
           <button type="submit" class="btn primary">Build my plan</button>
-          <p class="hint">Everything runs in your browser; nothing is sent anywhere.</p>
+          <p class="hint">Everything stays on your device; nothing is sent anywhere. <span id="saved-note" class="ok-note"></span></p>
         </form>
         <div id="results" class="results"></div>
       </div>
     </section>
 
-    <section id="tab-splits" class="tab-panel" hidden></section>
-    <section id="tab-exercises" class="tab-panel" hidden></section>
-    <section id="tab-diet" class="tab-panel" hidden></section>
-    <section id="tab-recipes" class="tab-panel" hidden></section>
-    <section id="tab-hiit" class="tab-panel" hidden></section>
-    <section id="tab-yoga" class="tab-panel" hidden></section>
-    <section id="tab-pilates" class="tab-panel" hidden></section>
-    <section id="tab-meditation" class="tab-panel" hidden></section>
-    <section id="tab-sleep" class="tab-panel" hidden></section>
-    <section id="tab-longevity" class="tab-panel" hidden></section>
-    <section id="tab-science" class="tab-panel" hidden></section>
   </main>
+
+  <nav class="bottom-nav" id="bottom-nav" aria-label="Main sections"></nav>
+
+  <dialog id="menu" aria-label="All modules">
+    <button class="btn small modal-close" id="menu-close" aria-label="Close">✕</button>
+    <h2>All modules</h2>
+    <div id="menu-body"></div>
+  </dialog>
 
   <dialog id="ex-modal" aria-label="Exercise demo">
     <button class="btn small modal-close" id="ex-modal-close" aria-label="Close">✕</button>
@@ -159,10 +147,12 @@
   <footer class="site-footer">
     <div class="wrap">
       <p><strong>Not medical advice.</strong> Check with a doctor before starting if you have a heart, joint or other medical condition, are pregnant, or are new to exercise after 40.</p>
+      <p class="footer-brand"><img src="img/logo-tile.png" width="28" height="28" alt=""> <span>© <span id="year">2026</span> TechSwitch. Workout Splits is built by <a href="https://techswitch.in">TechSwitch</a>.</span></p>
       <p>Open source under the MIT license · Exercise demos: <a href="https://github.com/yuhonas/free-exercise-db">free-exercise-db</a> (public domain) · Yoga &amp; Pilates videos: <span id="footer-channels"></span> · Longevity framework credit: Bryan Johnson · <a href="https://github.com/Mr-Saikiran/workout-splits">Contribute on GitHub</a><span class="web-only"> · <a href="https://github.com/Mr-Saikiran/workout-splits/releases/latest">Get the Android &amp; iPhone apps</a></span></p>
     </div>
   </footer>
 
+  <script src="js/store.js"></script>
   <script src="js/data/references.js"></script>
   <script src="js/data/exercises.js"></script>
   <script src="js/data/demos.js"></script>
@@ -171,10 +161,12 @@
   <script src="js/data/movement.js"></script>
   <script src="js/data/foods.js"></script>
   <script src="js/data/recipes.js"></script>
+  <script src="js/data/conditions.js"></script>
   <script src="js/data/wellness.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/wellness-ui.js"></script>
+  <script src="js/tracker-ui.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

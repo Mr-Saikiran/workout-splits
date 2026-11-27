@@ -9,7 +9,7 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
-    paths: ["index.html", "css/**", "js/**", "assets/**", "scripts/build-web.mjs", "package*.json", "capacitor.config.json", ".github/workflows/mobile.yml"]
+    paths: ["index.html", "css/**", "js/**", "img/**", "assets/**", "scripts/build-web.mjs", "package*.json", "capacitor.config.json", ".github/workflows/mobile.yml"]
   pull_request:
   workflow_dispatch:
     inputs:
